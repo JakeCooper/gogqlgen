@@ -29,7 +29,7 @@ func main() {
 	types := schema["__schema"].(map[string]interface{})["types"].([]interface{})
 	typeMap := make(map[string]string)
 	for _, v := range types {
-		z := v.(map[string]interface{})
+		z := tm(v)
 		kind := z["kind"]
 		name := z["name"]
 
@@ -45,10 +45,10 @@ func main() {
 		// Handle Enum
 		if kind == "ENUM" {
 			enumList := []string{}
-			enumValues := v.(map[string]interface{})["enumValues"]
+			enumValues := tm(v)["enumValues"]
 			if enumValues != nil {
 				for _, val := range enumValues.([]interface{}) {
-					enumList = append(enumList, val.(map[string]interface{})["name"].(string))
+					enumList = append(enumList, tm(val)["name"].(string))
 				}
 			}
 			fmt.Print("Values: [", strings.Join(enumList, ", "), "]\n\n")
@@ -59,26 +59,25 @@ func main() {
 		if f != nil {
 			fmt.Print("Fields: ")
 			for _, rf := range f.([]interface{}) {
-				field := rf.(map[string]interface{})
-				fieldType := field["type"].(map[string]interface{})["ofType"]
+				field := tm(rf)
+				fieldType := tm(field["type"])["ofType"]
 				if fieldType != nil {
-					fieldTypeName := fieldType.(map[string]interface{})["name"]
-					fieldKind := fieldType.(map[string]interface{})["kind"]
+					fieldTypeName := tm(fieldType)["name"]
+					fieldKind := tm(fieldType)["kind"]
 					isList := false
 					if fieldKind != nil {
 						// InternalType
 						// TODO Probably recursion IDK
-						ofType := fieldType.(map[string]interface{})["ofType"]
-						isList = fieldType.(map[string]interface{})["kind"] == "LIST"
+						ofType := tm(fieldType)["ofType"]
+						isList = tm(fieldType)["kind"] == "LIST"
 						if ofType != nil {
-							ofType = ofType.(map[string]interface{})["ofType"]
+							ofType = tm(ofType)["ofType"]
 							if ofType != nil {
-								fieldTypeName = ofType.(map[string]interface{})["name"]
+								fieldTypeName = tm(ofType)["name"]
 							}
 						}
 					}
 					typeName := fieldTypeName.(string)
-					// TODO just check if the prefix is __
 
 					if strings.Contains(typeName, "__") {
 						// Skip internal GraphQL shit
