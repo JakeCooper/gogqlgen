@@ -2,7 +2,6 @@ package introspect
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/machinebox/graphql"
 )
@@ -120,7 +119,7 @@ func RawSchema(url string) (map[string]interface{}, error) {
 	ctx := context.Background()
 	q := introspectQuery()
 	// MachineboxGQL
-	c := graphql.NewClient(fmt.Sprintf("%s/graphql", url))
+	c := graphql.NewClient(url)
 
 	var resp map[string]interface{}
 	err := c.Run(ctx, graphql.NewRequest(q), &resp)

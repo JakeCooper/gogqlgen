@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -15,7 +17,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	schema, err := introspect.RawSchema("http://localhost:8082")
+	url := flag.String("url", "", "URL of GraphQL API")
+	flag.Parse()
+	if url == nil || *url == "" {
+		panic(errors.New("URL must be provided!"))
+	}
+	schema, err := introspect.RawSchema(*url)
 	if err != nil {
 		panic(err)
 	}
@@ -33,6 +40,8 @@ func main() {
 
 		fmt.Print(kind, ": ", name, "\n")
 		f := getFields(z)
+
+		// TODO Probs a switch statement
 		// Handle Enum
 		if kind == "ENUM" {
 			enumList := []string{}
