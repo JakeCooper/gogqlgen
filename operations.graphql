@@ -1,0 +1,1611 @@
+# Fragments
+
+fragment UserFields on User {
+  id
+  email
+  name
+  avatar
+  isAdmin
+  createdAt
+  plan
+  projects(orderBy: { updatedAt: desc }) {
+    id
+    name
+    deletedAt
+  }
+  providerAuths {
+    id
+    provider
+    metadata
+  }
+  requestedPlugins {
+    id
+    name
+  }
+  teams {
+    ...TeamFields
+  }
+  registrationStatus
+}
+
+fragment TeamFields on Team {
+  id
+  name
+  avatar
+  createdAt
+  teamPermissions {
+    role
+    userId
+  }
+  projects {
+    id
+    name
+    deletedAt
+  }
+}
+
+fragment TeamMemberFields on TeamPermission {
+  role
+  user {
+    id
+    name
+    email
+    avatar
+  }
+}
+
+fragment ProjectFields on Project {
+  id
+  name
+  domain
+  description
+  createdAt
+  expiredAt
+  singletonDeploys
+  prDeploys
+  team {
+    id
+    name
+    avatar
+  }
+  plugins {
+    ...PluginFields
+  }
+  environments {
+    ...EnvironmentFields
+  }
+  users {
+    id
+    name
+  }
+  projectPermissions {
+    role
+    userId
+    projectId
+  }
+  webhooks {
+    ...ProjectWebhookFields
+  }
+}
+
+fragment PluginFields on Plugin {
+  id
+  name
+}
+
+fragment EnvironmentFields on Environment {
+  id
+  name
+  domain
+  isEphemeral
+}
+
+fragment MembersFields on Member {
+  id
+  email
+  name
+  avatar
+  role
+}
+
+fragment ProjectWebhookFields on ProjectWebhook {
+  id
+  url
+  lastStatus
+}
+
+fragment ProjectTokenFields on ProjectToken {
+  id
+  name
+  displayToken
+  createdAt
+  environment {
+    name
+  }
+}
+
+fragment ContainerFields on Container {
+  id
+  createdAt
+  containerId
+  envs
+  plugin {
+    id
+    name
+  }
+}
+
+fragment RequestedPluginFields on RequestedPlugin {
+  id
+  name
+  users {
+    id
+    name
+    email
+    avatar
+  }
+}
+
+fragment UserRestrictionsFields on UserRestrictions {
+  maxProjects
+  maxEnvironments
+  maxDeploysPerEnvironment
+  maxPlugins
+}
+
+fragment DeploymentFields on Deployment {
+  id
+  status
+  createdAt
+  projectId
+  url
+  creator {
+    id
+    name
+    avatar
+    email
+  }
+  meta
+  environment {
+    id
+    name
+    domain
+  }
+}
+
+fragment DashboardProjects on Project {
+  id
+  name
+  description
+  domain
+  createdAt
+  updatedAt
+  expiredAt
+  deletedAt
+  teamId
+  users {
+    id
+    name
+    email
+    avatar
+  }
+  plugins {
+    id
+    name
+  }
+  environments {
+    id
+    name
+  }
+  deployments(orderBy: { createdAt: desc }) {
+    ...DeploymentFields
+  }
+}
+
+fragment DashboardFields on User {
+  id
+  email
+  name
+  avatar
+  createdAt
+  registrationStatus
+  plan
+  isAdmin
+  projects(orderBy: { updatedAt: desc }) {
+    ...DashboardProjects
+  }
+  teams {
+    id
+    name
+    avatar
+    teamPermissions {
+      ...TeamMemberFields
+    }
+    projects(orderBy: { updatedAt: desc }) {
+      ...DashboardProjects
+    }
+  }
+}
+
+fragment MetricFields on Metric {
+  containerId
+  cpuPercentVCPU
+  memoryUsageBytes
+  memoryLimitBytes
+  networkTxBytes
+  networkRxBytes
+  date
+}
+
+fragment EnvironmentMetricsFields on EnvironmentMetrics {
+  deployments {
+    deployment {
+      id
+      url
+      status
+    }
+    metrics {
+      ...MetricFields
+    }
+  }
+  plugins {
+    plugin {
+      id
+      name
+    }
+    metrics {
+      ...MetricFields
+    }
+  }
+}
+
+fragment ProjectPriceFields on ProjectPrice {
+  total
+  plugins
+  deployments
+  earliestMetric
+  latestMetric
+  project {
+    id
+    name
+  }
+}
+
+# Users
+
+query getMe {
+  me {
+    ...UserFields
+  }
+}
+
+query dashboard {
+  me {
+    ...DashboardFields
+  }
+}
+
+query userRestrictions {
+  userRestrictions {
+    ...UserRestrictionsFields
+  }
+}
+
+mutation updateUser($name: String, $avatar: String) {
+  updateUser(name: $name, avatar: $avatar) {
+    ...UserFields
+  }
+}
+
+mutation waitlistUser($email: String!) {
+  waitlistUser(email: $email) {
+    ...UserFields
+  }
+}
+
+query verifyLoginSession($code: String!) {
+  verifyLoginSession(code: $code)
+}
+
+mutation authLoginSession($code: String!) {
+  authLoginSession(code: $code)
+}
+
+mutation cancelLoginSession($code: String!) {
+  cancelLoginSession(code: $code)
+}
+
+mutation removeProviderAuth($id: String!) {
+  removeProviderAuth(authId: $id)
+}
+
+# Projects
+
+query projectById($projectId: ID!) {
+  projectById(projectId: $projectId) {
+    ...ProjectFields
+  }
+}
+
+query isProjectDomainAvailable($domain: String!) {
+  isProjectDomainAvailable(domain: $domain)
+}
+
+mutation createProject($name: String, $teamId: String, $plugins: [String!]) {
+  createProject(name: $name, teamId: $teamId, plugins: $plugins) {
+    ...ProjectFields
+  }
+}
+
+mutation createProjectFromTemplate(
+  $name: String!
+  $owner: String!
+  $template: String!
+  $isPrivate: Boolean!
+  $plugins: [String!]
+  $variables: Json
+) {
+  createProjectFromTemplate(
+    name: $name
+    owner: $owner
+    template: $template
+    isPrivate: $isPrivate
+    plugins: $plugins
+    variables: $variables
+  ) {
+    projectId
+    workflowId
+  }
+}
+
+mutation deleteProject($projectId: String!) {
+  deleteProject(projectId: $projectId)
+}
+
+mutation updateProject(
+  $projectId: ID!
+  $name: String
+  $description: String
+  $domain: String
+  $singletonDeploys: Boolean
+  $prDeploys: Boolean
+) {
+  updateProject(
+    projectId: $projectId
+    name: $name
+    description: $description
+    domain: $domain
+    singletonDeploys: $singletonDeploys
+    prDeploys: $prDeploys
+  ) {
+    ...ProjectFields
+  }
+}
+
+mutation createWebhook($projectId: ID!, $url: String!) {
+  createWebhook(projectId: $projectId, url: $url) {
+    ...ProjectWebhookFields
+  }
+}
+
+mutation updateWebhook($id: ID!, $projectId: ID!, $url: String!) {
+  updateWebhook(id: $id, projectId: $projectId, url: $url) {
+    ...ProjectWebhookFields
+  }
+}
+
+mutation deleteWebhook($id: ID!, $projectId: ID!) {
+  deleteWebhook(id: $id, projectId: $projectId) {
+    ...ProjectWebhookFields
+  }
+}
+
+mutation createPlugin($projectId: String!, $name: String!) {
+  createPlugin(projectId: $projectId, name: $name) {
+    ...PluginFields
+  }
+}
+
+mutation deletePlugin($projectId: String!, $pluginId: ID!) {
+  deletePlugin(projectId: $projectId, id: $pluginId)
+}
+
+mutation createEnvironment($projectId: String!, $name: String!) {
+  createEnvironment(projectId: $projectId, name: $name) {
+    ...EnvironmentFields
+  }
+}
+
+mutation deleteEnvironment($projectId: String!, $environmentId: String!) {
+  deleteEnvironment(projectId: $projectId, environmentId: $environmentId)
+}
+
+mutation claimProject($projectId: String!) {
+  claimProject(projectId: $projectId) {
+    ...ProjectFields
+  }
+}
+
+mutation updateProjectLastActive($projectId: String!) {
+  updateProjectLastActive(projectId: $projectId)
+}
+
+mutation inviteUserToProject(
+  $projectId: String!
+  $email: String!
+  $link: String!
+) {
+  inviteUserToProject(projectId: $projectId, email: $email, link: $link)
+}
+
+# Prices
+
+query priceForProject($projectId: String!) {
+  priceForProject(projectId: $projectId) {
+    ...ProjectPriceFields
+  }
+}
+
+query priceForUserProjects($userId: String!) {
+  priceForUserProjects(userId: $userId) {
+    ...ProjectPriceFields
+  }
+}
+
+query priceForTeamProjects($teamId: String!) {
+  priceForTeamProjects(teamId: $teamId) {
+    ...ProjectPriceFields
+  }
+}
+
+# Metrics
+
+query metricsForEnvironment(
+  $projectId: String!
+  $environmentId: String!
+  $startDate: String
+  $endDate: String
+  $samplingRate: Int
+) {
+  metricsForEnvironment(
+    projectId: $projectId
+    environmentId: $environmentId
+    startDate: $startDate
+    endDate: $endDate
+    samplingRate: $samplingRate
+  ) {
+    ...EnvironmentMetricsFields
+  }
+}
+
+# Teams
+
+query getTeamMembers($teamId: ID!) {
+  teamById(teamId: $teamId) {
+    teamPermissions {
+      ...TeamMemberFields
+    }
+  }
+}
+
+query findTeamByCode($code: String!) {
+  findTeamByCode(code: $code) {
+    ...TeamFields
+  }
+}
+
+mutation useTeamInviteCode($code: String!) {
+  useTeamInviteCode(code: $code) {
+    ...TeamFields
+  }
+}
+
+mutation createTeam($name: String!, $avatar: String) {
+  createTeam(name: $name, avatar: $avatar) {
+    ...TeamFields
+  }
+}
+
+mutation updateTeam($teamId: String!, $name: String!, $avatar: String) {
+  updateTeam(teamId: $teamId, name: $name, avatar: $avatar) {
+    ...TeamFields
+  }
+}
+
+mutation createInviteCodeForTeam($teamId: String!, $role: String!) {
+  createInviteCodeForTeam(teamId: $teamId, role: $role)
+}
+
+mutation leaveTeam($teamId: String!) {
+  leaveTeam(teamId: $teamId)
+}
+
+mutation removeUserFromTeam($teamId: String!, $userId: String!) {
+  removeUserFromTeam(teamId: $teamId, userId: $userId)
+}
+
+mutation deleteTeam($teamId: String!) {
+  deleteTeam(teamId: $teamId)
+}
+
+mutation changeTeamPermission(
+  $teamId: String!
+  $userId: String!
+  $role: TeamRole!
+) {
+  changeTeamPermission(teamId: $teamId, userId: $userId, role: $role)
+}
+
+mutation transferProjectToTeam($teamId: String!, $projectId: String!) {
+  transferProjectToTeam(teamId: $teamId, projectId: $projectId)
+}
+
+mutation transferProjectToUser($projectId: String!) {
+  transferProjectToUser(projectId: $projectId)
+}
+
+mutation inviteUserToTeam($teamId: String!, $email: String!, $link: String!) {
+  inviteUserToTeam(teamId: $teamId, email: $email, link: $link)
+}
+
+# Workflows
+
+query getWorkflowStatus($workflowId: String!) {
+  getWorkflowStatus(workflowId: $workflowId) {
+    status
+  }
+}
+
+# Environments
+
+query findContainersForEnvironment(
+  $projectId: String!
+  $environmentId: String!
+) {
+  environmentById(projectId: $projectId, environmentId: $environmentId) {
+    id
+    name
+    containers {
+      ...ContainerFields
+    }
+  }
+}
+
+query getEnvironmentsWithEnvs($projectId: String!) {
+  allProjectEnvironments(projectId: $projectId) {
+    id
+    name
+    envs {
+      id
+      envs
+      plugin {
+        id
+        name
+      }
+    }
+  }
+}
+
+mutation resetPluginForEnvironment(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  resetPluginForEnvironment(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+query isEnvironmentDomainAvailable($domain: String!) {
+  isEnvironmentDomainAvailable(domain: $domain)
+}
+
+mutation setDomainForEnvironment(
+  $projectId: String!
+  $environmentId: String!
+  $domain: String!
+) {
+  setDomainForEnvironment(
+    projectId: $projectId
+    environmentId: $environmentId
+    domain: $domain
+  )
+}
+
+mutation clearDomainForEnvironment(
+  $projectId: String!
+  $environmentId: String!
+) {
+  clearDomainForEnvironment(
+    projectId: $projectId
+    environmentId: $environmentId
+  )
+}
+
+# Deployments
+
+query deploymentById($projectId: ID!, $deploymentId: ID!) {
+  deploymentById(projectId: $projectId, deploymentId: $deploymentId) {
+    ...DeploymentFields
+    buildLogs
+    deployLogs
+    staticUrl
+    project {
+      id
+      name
+    }
+  }
+}
+
+query allDeploymentsForProject($projectId: ID!) {
+  allDeploymentsForProject(projectId: $projectId) {
+    ...DeploymentFields
+  }
+}
+
+mutation removeDeployment($projectId: ID!, $deploymentId: ID!) {
+  removeDeployment(projectId: $projectId, deploymentId: $deploymentId)
+}
+
+mutation createDeployment(
+  $repository: String!
+  $branch: String!
+  $environmentId: ID!
+  $projectId: ID!
+) {
+  createDeployment(
+    repository: $repository
+    branch: $branch
+    environmentId: $environmentId
+    projectId: $projectId
+  )
+}
+
+# DeploymentTriggers
+
+fragment DeploymentTriggerFields on DeploymentTrigger {
+  id
+  provider
+  repository
+  branch
+  environmentId
+  baseEnvironmentOverrideId
+}
+
+query getDeploymentTriggersByProject($projectId: String!) {
+  getDeploymentTriggersByProject(projectId: $projectId) {
+    ...DeploymentTriggerFields
+  }
+}
+
+mutation createDeploymentTrigger(
+  $repository: String!
+  $branch: String!
+  $provider: String!
+  $environmentId: String!
+  $projectId: String!
+) {
+  createDeploymentTrigger(
+    repository: $repository
+    branch: $branch
+    provider: $provider
+    environmentId: $environmentId
+    projectId: $projectId
+  )
+}
+
+mutation removeDeploymentTrigger($triggerId: String!, $projectId: String!) {
+  removeDeploymentTrigger(triggerId: $triggerId, projectId: $projectId)
+}
+
+mutation deployEnvironmentTriggers(
+  $projectId: String!
+  $environmentId: String!
+) {
+  deployEnvironmentTriggers(
+    projectId: $projectId
+    environmentId: $environmentId
+  )
+}
+
+mutation setBaseEnvironmentOverride(
+  $projectId: String!
+  $triggerId: String!
+  $baseEnvironmentOverrideId: String
+) {
+  setBaseEnvironmentOverride(
+    projectId: $projectId
+    triggerId: $triggerId
+    baseEnvironmentOverrideId: $baseEnvironmentOverrideId
+  )
+}
+
+# GitHub
+
+query getAvailableGitHubRepos {
+  getAvailableGitHubRepos {
+    id
+    name
+    fullName
+    installationId
+    defaultBranch
+  }
+}
+
+query getWritableGithubScopes {
+  getWritableGithubScopes
+}
+
+query getBranchesForGitHubRepo($owner: String!, $repo: String!) {
+  getBranchesForGitHubRepo(owner: $owner, repo: $repo) {
+    name
+  }
+}
+
+query isRepoNameAvailable($fullRepoName: String!) {
+  isRepoNameAvailable(fullRepoName: $fullRepoName)
+}
+
+# Envs
+
+query getEnvsForPlugin(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  allEnvsForPlugin(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+mutation updateEnvsForPlugin(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $envs: Json!
+) {
+  updateEnvsForPlugin(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    envs: $envs
+  )
+}
+
+# Members
+
+query projectMembers($projectId: ID!) {
+  projectMembers(projectId: $projectId) {
+    ...MembersFields
+  }
+}
+
+mutation changeUserRole($projectId: String!, $userId: String!, $role: String!) {
+  changeUserRole(projectId: $projectId, userId: $userId, role: $role) {
+    ...MembersFields
+  }
+}
+
+mutation removeUserFromProject($projectId: String!, $userId: String!) {
+  removeUserFromProject(projectId: $projectId, userId: $userId) {
+    ...MembersFields
+  }
+}
+
+mutation leaveProject($projectId: String!) {
+  leaveProject(projectId: $projectId)
+}
+
+# Tokens
+
+query projectTokens($projectId: String!) {
+  projectTokens(projectId: $projectId) {
+    ...ProjectTokenFields
+  }
+}
+
+mutation createProjectToken(
+  $projectId: String!
+  $environmentId: String!
+  $name: String!
+) {
+  createProjectToken(
+    projectId: $projectId
+    environmentId: $environmentId
+    name: $name
+  )
+}
+
+mutation deleteProjectToken($projectId: String!, $tokenId: ID!) {
+  deleteProjectToken(projectId: $projectId, tokenId: $tokenId)
+}
+
+# Invite codes
+
+query inviteCode($projectId: String!, $role: String!) {
+  inviteCode(projectId: $projectId, role: $role) {
+    code
+    role
+  }
+}
+
+query findInviteCodeByCode($code: String!) {
+  findInviteCodeByCode(code: $code) {
+    project {
+      id
+      name
+    }
+  }
+}
+
+mutation joinProjectByCode($code: String!) {
+  joinWithInviteCode(code: $code) {
+    id
+    name
+  }
+}
+
+# Requested Plugins
+
+query getRequestedPluginCountByName($name: String!) {
+  requestedPluginCountByName(name: $name)
+}
+
+query getAllRequestedPlugins {
+  allRequestedPlugins {
+    ...RequestedPluginFields
+  }
+}
+
+mutation requestPlugin($name: String!) {
+  requestPlugin(name: $name)
+}
+
+mutation unRequestPlugin($name: String!) {
+  unRequestPlugin(name: $name)
+}
+
+# Admin
+
+query getStats {
+  stats {
+    numUsers
+    numProjects
+    numContainers
+    numSubscribed
+    numDeploys
+    numTeams
+    deploysLastHour
+    latestDeploys {
+      ...DeploymentFields
+      project {
+        id
+        name
+      }
+    }
+    latestProjects {
+      ...DashboardProjects
+    }
+    activeProjects {
+      ...DashboardProjects
+    }
+    latestUsers {
+      ...DashboardFields
+    }
+  }
+}
+
+query getAllUsers(
+  $query: String
+  $limit: Int
+  $offset: Int
+  $earlyAdopter: Boolean
+) {
+  allUsers(
+    query: $query
+    limit: $limit
+    offset: $offset
+    earlyAdopter: $earlyAdopter
+  ) {
+    ...DashboardFields
+  }
+}
+
+query getAllTeams($limit: Int, $offset: Int) {
+  allTeams(limit: $limit, offset: $offset) {
+    ...TeamFields
+    projects {
+      ...DashboardProjects
+    }
+  }
+}
+
+query getAllProjects($query: String, $limit: Int, $offset: Int) {
+  allProjects(query: $query, limit: $limit, offset: $offset) {
+    ...DashboardProjects
+  }
+}
+
+query getAllContainers($limit: Int, $offset: Int) {
+  allContainers(limit: $limit, offset: $offset) {
+    ...ContainerFields
+    plugin {
+      project {
+        id
+        name
+      }
+    }
+  }
+}
+
+query getAllDeploys($status: DeployStatus, $limit: Int, $offset: Int) {
+  allDeployments(status: $status, limit: $limit, offset: $offset) {
+    ...DeploymentFields
+    project {
+      id
+      name
+    }
+  }
+}
+
+# Integrations
+
+query getIntegrationInfo($projectId: String!) {
+  integrations(projectId: $projectId) {
+    id
+    name
+    config
+  }
+  integrationAuths {
+    id
+    provider
+    providerId
+  }
+}
+
+query getVercelInfo {
+  vercelInfo {
+    userId
+    username
+    teams {
+      id
+      name
+      projects {
+        id
+        name
+        accountId
+      }
+    }
+  }
+}
+
+mutation createIntegration(
+  $projectId: String!
+  $name: String!
+  $config: Json!
+  $integrationAuthId: String
+) {
+  createIntegration(
+    projectId: $projectId
+    name: $name
+    config: $config
+    integrationAuthId: $integrationAuthId
+  ) {
+    id
+    name
+    config
+  }
+}
+
+mutation updateIntegration(
+  $integrationId: String!
+  $projectId: String!
+  $name: String!
+  $config: Json!
+  $integrationAuthId: String
+) {
+  updateIntegration(
+    integrationId: $integrationId
+    projectId: $projectId
+    name: $name
+    config: $config
+    integrationAuthId: $integrationAuthId
+  ) {
+    id
+    name
+    config
+  }
+}
+
+mutation removeIntegration($integrationId: String!, $projectId: String!) {
+  removeIntegration(integrationId: $integrationId, projectId: $projectId)
+}
+
+# Subscriptions
+
+fragment SubscriptionFields on Subscription {
+  id
+  periodStart
+  periodEnd
+  status
+  isCancelled
+}
+
+query getSubscriptions {
+  getSubscriptions {
+    ...SubscriptionFields
+  }
+}
+
+mutation createBillingPortal($baseUrl: String!) {
+  createBillingPortal(baseUrl: $baseUrl)
+}
+
+mutation createCheckoutSession($baseUrl: String!, $priceId: String!) {
+  createCheckoutSession(baseUrl: $baseUrl, priceId: $priceId)
+}
+
+# SQL
+
+query getSQLTableNames(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $databaseType: String!
+) {
+  getSQLTableNames(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    databaseType: $databaseType
+  )
+}
+
+query getSQLTable(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $limit: Int!
+  $offset: Int!
+  $databaseType: String!
+) {
+  getSQLTable(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    limit: $limit
+    offset: $offset
+    databaseType: $databaseType
+  ) {
+    name
+    primaryKey
+    columnNames
+    columnTypes
+    rows
+    totalRows
+  }
+}
+
+input SQLColumnInput {
+  name: String!
+  type: String!
+  default: String
+  constraint: String
+}
+
+input SQLRowInput {
+  name: String!
+  value: String!
+}
+
+mutation createSQLTable(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $columns: [SQLColumnInput!]!
+  $databaseType: String!
+) {
+  createSQLTable(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    columns: $columns
+    databaseType: $databaseType
+  )
+}
+
+mutation deleteSQLTable(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $databaseType: String!
+) {
+  deleteSQLTable(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    databaseType: $databaseType
+  )
+}
+
+mutation insertSQLRow(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $tableName: String!
+  $columns: [SQLRowInput!]!
+  $databaseType: String!
+) {
+  insertSQLRow(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    tableName: $tableName
+    columns: $columns
+    databaseType: $databaseType
+  )
+}
+
+mutation deleteSQLRows(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $tableName: String!
+  $columnName: String!
+  $rows: [String!]!
+  $databaseType: String!
+) {
+  deleteSQLRows(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    tableName: $tableName
+    columnName: $columnName
+    rows: $rows
+    databaseType: $databaseType
+  )
+}
+
+mutation updateSQLRow(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $tableName: String!
+  $pKey: String!
+  $pKeyValue: String!
+  $data: Json!
+  $databaseType: String!
+) {
+  updateSQLRow(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    tableName: $tableName
+    pKey: $pKey
+    pKeyValue: $pKeyValue
+    data: $data
+    databaseType: $databaseType
+  )
+}
+
+mutation dummyDataSQL(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $databaseType: String!
+) {
+  dummyDataSQL(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    databaseType: $databaseType
+  )
+}
+
+# Redis
+
+query getRedisKeys(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  redisKeys(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  ) {
+    name
+    type
+    ttl
+  }
+}
+
+query getRedisData(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+) {
+  redisGetKey(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+  )
+}
+
+mutation setRedisExpire(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $ttl: Int!
+) {
+  redisSetExpire(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    ttl: $ttl
+  )
+}
+
+mutation deleteRedisKey(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+) {
+  redisDeleteKey(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+  )
+}
+
+mutation setRedisString(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $value: String!
+) {
+  redisStringSet(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    value: $value
+  )
+}
+
+mutation setRedisListIndex(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $index: Int!
+  $value: String!
+) {
+  redisSetListIndex(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    index: $index
+    value: $value
+  )
+}
+
+mutation pushRedisList(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $side: String!
+  $values: [String!]!
+) {
+  redisPushList(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    side: $side
+    values: $values
+  )
+}
+
+mutation popRedisList(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $side: String!
+) {
+  redisPopList(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    side: $side
+  )
+}
+
+mutation addRedisSet(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $values: [String!]!
+) {
+  redisSetAdd(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    values: $values
+  )
+}
+
+mutation removeRedisSet(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $values: [String!]!
+) {
+  redisSetRemove(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    values: $values
+  )
+}
+
+mutation setRedisHash(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $values: Json!
+) {
+  redisHashSet(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    values: $values
+  )
+}
+
+mutation deleteRedisHash(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $key: String!
+  $values: [String!]!
+) {
+  redisHashDelete(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    key: $key
+    values: $values
+  )
+}
+
+mutation generateRedisDummyData(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  redisDummyData(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+# Elasticseach
+
+query isElasticContainerUp(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  elasticIsUp(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+query elasticGetIndicies(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  elasticGetIndicies(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  ) {
+    uuid
+    name
+    numDocs
+  }
+}
+
+query elasticSearchIndex(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $search: String!
+  $index: String
+  $from: Int
+  $size: Int
+) {
+  elasticSearchIndex(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    search: $search
+    index: $index
+    from: $from
+    size: $size
+  ) {
+    time
+    numResults
+    items {
+      id
+      index
+      type
+      score
+      data
+    }
+  }
+}
+
+mutation generateElasticDummyData(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  elasticDummyData(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+# Logger
+
+query environmentLogs($projectId: String!, $environmentId: String!) {
+  environmentLogs(projectId: $projectId, environmentId: $environmentId) {
+    id
+    createdAt
+    environmentId
+    message
+    data
+  }
+}
+
+# Mongo
+
+query getMongoCollectionNames(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  mongoCollectionNames(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
+query getMongoCollection(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+) {
+  mongoCollectionData(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+  ) {
+    name
+    data
+  }
+}
+
+mutation deleteMongoCollection(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+) {
+  mongoDeleteCollection(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+  )
+}
+
+mutation insertMongoDocument(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $data: Json!
+) {
+  mongoInsertDocument(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    data: $data
+  )
+}
+
+mutation deleteMongoDocument(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $id: String!
+) {
+  mongoDeleteDocument(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    id: $id
+  )
+}
+
+mutation updateMongoDocument(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+  $name: String!
+  $id: String!
+  $data: Json!
+) {
+  mongoUpdateDocument(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+    name: $name
+    id: $id
+    data: $data
+  )
+}
+
+mutation generateMongoDummyData(
+  $projectId: String!
+  $environmentId: String!
+  $pluginId: String!
+) {
+  mongoDummyData(
+    projectId: $projectId
+    environmentId: $environmentId
+    pluginId: $pluginId
+  )
+}
+
