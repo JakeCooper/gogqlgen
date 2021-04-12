@@ -16,7 +16,6 @@ func (g *Generator) HandleQuery(req interface{}) {
 	if fields != nil {
 		for _, rf := range fields.([]interface{}) {
 			field := tm(rf)
-			fmt.Println(field["name"])
 			fieldType := tm(field["type"])["ofType"]
 			args := field["args"].([]interface{})
 			fieldName := field["name"].(string)
@@ -38,7 +37,6 @@ func (g *Generator) HandleQuery(req interface{}) {
 				}
 				g.Outs.QueryFile.Write([]byte(tokens.GQLTypeToGolangType(argValue.(string))))
 				g.Outs.QueryFile.Write([]byte("\n"))
-				fmt.Println(argName, argValue, isRequired)
 			}
 			// Whatever the response is GQL
 			if fieldType != nil {
@@ -75,6 +73,9 @@ func (g *Generator) HandleQuery(req interface{}) {
 				// }
 				g.Outs.QueryFile.Write([]byte(fmt.Sprintf("%sGQL\n", tokens.GQLTypeToGolangType(typeName))))
 				g.Outs.QueryFile.Write([]byte("}\n\n"))
+				// TODO Generate client (Probably need a response object else gonna fail to serialize shit back)
+				// Actually probs not true just do the machinebox gql meme with the resp as (bool, primitive, etc)
+				//g.Outs.ClientFile.Write([]byte(GenerateClient(strings.Title(fieldName))))
 			}
 		}
 	}

@@ -12,6 +12,7 @@ type Outs struct {
 	ObjectFile   *os.File
 	QueryFile    *os.File
 	MutationFile *os.File
+	ClientFile   *os.File
 }
 
 type Generator struct {
@@ -39,8 +40,12 @@ func New(path string, filename string) *Generator {
 	if err != nil {
 		panic(err)
 	}
+	clientFile, err := os.Create(fmt.Sprintf("./%s/client.go", path))
+	if err != nil {
+		panic(err)
+	}
 
-	files := []*os.File{objectFile, gqlFile, mutationFile, queryFile}
+	files := []*os.File{objectFile, gqlFile, mutationFile, queryFile, clientFile}
 
 	for _, file := range files {
 		file.Write([]byte("// GENERATED FILE DO NOT EDIT!!!\n\npackage gen\n\n"))
@@ -52,6 +57,7 @@ func New(path string, filename string) *Generator {
 			ObjectFile:   objectFile,
 			QueryFile:    queryFile,
 			MutationFile: mutationFile,
+			ClientFile:   clientFile,
 		},
 		Types: make(map[string]string),
 	}
