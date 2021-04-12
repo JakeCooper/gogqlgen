@@ -12,6 +12,8 @@ import (
 	"github.com/jakecooper/gogqlgen/internal/tokens"
 )
 
+var typeMap = make(map[string]string)
+
 func main() {
 	_, err := ioutil.ReadFile("./operations.graphql")
 	if err != nil {
@@ -27,7 +29,6 @@ func main() {
 		panic(err)
 	}
 	types := schema["__schema"].(map[string]interface{})["types"].([]interface{})
-	typeMap := make(map[string]string)
 	for _, v := range types {
 		z := tm(v)
 		kind := z["kind"]
@@ -39,59 +40,15 @@ func main() {
 		}
 
 		fmt.Print(kind, ": ", name, "\n")
-		f := getFields(z)
 
 		// TODO Probs a switch statement
 		// Handle Enum
-		if kind == "ENUM" {
-			enumList := []string{}
-			enumValues := tm(v)["enumValues"]
-			if enumValues != nil {
-				for _, val := range enumValues.([]interface{}) {
-					enumList = append(enumList, tm(val)["name"].(string))
-				}
-			}
-			fmt.Print("Values: [", strings.Join(enumList, ", "), "]\n\n")
-			continue
-		}
 
-		// Handle Everything Else
-		if f != nil {
-			fmt.Print("Fields: ")
-			for _, rf := range f.([]interface{}) {
-				field := tm(rf)
-				fieldType := tm(field["type"])["ofType"]
-				if fieldType != nil {
-					fieldTypeName := tm(fieldType)["name"]
-					fieldKind := tm(fieldType)["kind"]
-					isList := false
-					if fieldKind != nil {
-						// InternalType
-						// TODO Probably recursion IDK
-						ofType := tm(fieldType)["ofType"]
-						isList = tm(fieldType)["kind"] == "LIST"
-						if ofType != nil {
-							ofType = tm(ofType)["ofType"]
-							if ofType != nil {
-								fieldTypeName = tm(ofType)["name"]
-							}
-						}
-					}
-					typeName := fieldTypeName.(string)
-
-					if strings.Contains(typeName, "__") {
-						// Skip internal GraphQL shit
-						continue
-					}
-					fmt.Print(field["name"], ":")
-					if isList {
-						fmt.Print("[]")
-					}
-					typeMap[typeName] = tokens.GQLTypeToGolangType(typeName)
-					fmt.Print(fieldTypeName, "\n\t")
-				}
-			}
-			fmt.Println()
+		switch kind {
+		case "ENUM":
+			handleEnum(z)
+		default:
+			handleBase(z)
 		}
 	}
 
@@ -102,8 +59,58 @@ func main() {
 	fmt.Println("List o Types", string(b))
 }
 
-func getFields(req interface{}) interface{} {
-	return req.(map[string]interface{})["fields"]
+func handleEnum(req interface{}) {
+	enumList := []string{}
+	enumValues := tm(req)["enumValues"]
+	if enumValues != nil {
+		for _, val := range enumValues.([]interface{}) {
+			enumList = append(enumList, tm(val)["name"].(string))
+		}
+	}
+	fmt.Print("Values: [", strings.Join(enumList, ", "), "]\n\n")
+	return
+}
+
+func handleBase(req interface{}) {
+	fields := req.(map[string]interface{})["fields"]
+	// Handle Everything Else
+	if fields != nil {
+		fmt.Print("Fields: ")
+		for _, rf := range fields.([]interface{}) {
+			field := tm(rf)
+			fieldType := tm(field["type"])["ofType"]
+			if fieldType != nil {
+				fieldTypeName := tm(fieldType)["name"]
+				fieldKind := tm(fieldType)["kind"]
+				isList := false
+				if fieldKind != nil {
+					// InternalType
+					// TODO Probably recursion IDK
+					ofType := tm(fieldType)["ofType"]
+					isList = tm(fieldType)["kind"] == "LIST"
+					if ofType != nil {
+						ofType = tm(ofType)["ofType"]
+						if ofType != nil {
+							fieldTypeName = tm(ofType)["name"]
+						}
+					}
+				}
+				typeName := fieldTypeName.(string)
+
+				if strings.Contains(typeName, "__") {
+					// Skip internal GraphQL shit
+					continue
+				}
+				fmt.Print(field["name"], ":")
+				if isList {
+					fmt.Print("[]")
+				}
+				typeMap[typeName] = tokens.GQLTypeToGolangType(typeName)
+				fmt.Print(fieldTypeName, "\n\t")
+			}
+		}
+		fmt.Println()
+	}
 }
 
 func tm(req interface{}) map[string]interface{} {
