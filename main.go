@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
-	"fmt"
 
 	"github.com/jakecooper/gogqlgen/internal/generator"
 	gql "github.com/jakecooper/gogqlgen/internal/graphql"
@@ -68,9 +66,9 @@ func main() {
 		}
 	}
 
-	b, err := json.MarshalIndent(g.Types, "", "  ")
-	if err != nil {
-		panic("FAILED TO RANDY MARSHAL")
-	}
-	fmt.Println("Types", string(b))
+	// b, err := json.MarshalIndent(g.Types, "", "  ")
+	// if err != nil {
+	// 	panic("FAILED TO RANDY MARSHAL")
+	// }
+	// fmt.Println("Types", string(b))
 }

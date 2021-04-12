@@ -7,6 +7,7 @@ var primitiveMap = map[string]string{
 	"Boolean":  "bool",
 	"Float":    "float64",
 	"Int":      "int32",
+	"ID":       "string",
 	"DateTime": "string",
 }
 

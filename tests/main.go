@@ -79,4 +79,17 @@ package main
 	const (
 		STATUS_BUILDING DeployStatus
 	)
+
+	type MetricsForEnvironmentRequest struct {
+		ProjectID string `json:"projectId"`
+		EnvironmentID string `json:"environmentId"`
+		StartDate *string `json:"startDate"`
+		EndDate *string `json:"endDate"`
+		SamplingRate *int `json:"samplingRate"`
+		GQL MetricsGQL
+	}
+
+	type MetricsGQL struct {
+
+	}
 */
