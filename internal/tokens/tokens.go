@@ -17,7 +17,7 @@ func GQLTypeToGolangType(gqlType string) string {
 	return gqlType
 }
 
-func CanGenerate(gqlType string) bool {
+func IsPrimitive(gqlType string) bool {
 	_, ok := primitiveMap[gqlType]
 	return ok
 }
