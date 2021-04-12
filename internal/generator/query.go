@@ -41,7 +41,6 @@ func (g *Generator) HandleQuery(req interface{}) {
 				fmt.Println(argName, argValue, isRequired)
 			}
 			// Whatever the response is GQL
-			g.Outs.QueryFile.Write([]byte("\tGQL "))
 			if fieldType != nil {
 				fieldTypeName := tm(fieldType)["name"]
 				fieldKind := tm(fieldType)["kind"]
@@ -60,10 +59,12 @@ func (g *Generator) HandleQuery(req interface{}) {
 				}
 				typeName := fieldTypeName.(string)
 
-				if graphql.IsInternal(typeName) {
+				if graphql.IsInternal(typeName) || tokens.IsPrimitive(typeName) {
 					// Skip internal GraphQL shit
+					g.Outs.QueryFile.Write([]byte("}\n\n"))
 					continue
 				}
+				g.Outs.QueryFile.Write([]byte("\tGQL "))
 
 				// if isList {
 				// 	g.Outs.QueryFile.Write([]byte("[]"))
