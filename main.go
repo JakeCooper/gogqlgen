@@ -5,25 +5,24 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"strings"
 
+	"github.com/jakecooper/gogqlgen/internal/generator"
+	gql "github.com/jakecooper/gogqlgen/internal/graphql"
 	"github.com/jakecooper/gogqlgen/internal/introspect"
-	"github.com/jakecooper/gogqlgen/internal/tokens"
+	"github.com/jakecooper/gogqlgen/internal/mapper"
 )
 
-var typeMap = make(map[string]string)
+var tm = mapper.ToMap
 
 func main() {
-	_, err := ioutil.ReadFile("./operations.graphql")
-	if err != nil {
-		panic(err)
-	}
 	url := flag.String("url", "", "URL of GraphQL API")
 	flag.Parse()
 	if url == nil || *url == "" {
 		panic(errors.New("URL must be provided!"))
 	}
+
+	g := generator.New("gen", "generated")
+
 	schema, err := introspect.RawSchema(*url)
 	if err != nil {
 		panic(err)
@@ -39,95 +38,39 @@ func main() {
 			continue
 		}
 
-		fmt.Print(kind, ": ", name, "\n")
+		if gql.IsInternal(name.(string)) {
+			// Skip internal GraphQL shit
+			continue
+		}
 
-		// TODO Probs a switch statement
-		// Handle Enum
-
-		switch kind {
-		case "ENUM":
-			handleEnum(z)
+		// Handle Queries, mutations, etc
+		switch name {
+		case "Mutation":
+			g.HandleMutation(z)
+			continue
+		case "Query":
+			g.HandleQuery(z)
+			continue
 		default:
-			handleBase(z)
+			// Continue onward
+		}
+
+		// Handle primitives
+		switch kind {
+		case "INPUT_OBJECT":
+			g.HandleInputObject(z)
+		case "SCALAR":
+			g.HandleScalar(z)
+		case "ENUM":
+			g.HandleEnum(z)
+		default:
+			g.HandleObject(z)
 		}
 	}
 
-	b, err := json.MarshalIndent(typeMap, "", "  ")
+	b, err := json.MarshalIndent(g.Types, "", "  ")
 	if err != nil {
 		panic("FAILED TO RANDY MARSHAL")
 	}
-	fmt.Println("List o Types", string(b))
-}
-
-func handleEnum(req interface{}) {
-	enumList := []string{}
-	enumValues := tm(req)["enumValues"]
-	if enumValues != nil {
-		for _, val := range enumValues.([]interface{}) {
-			enumList = append(enumList, tm(val)["name"].(string))
-		}
-	}
-	fmt.Print("Values: [", strings.Join(enumList, ", "), "]\n\n")
-	return
-}
-
-func handleBase(req interface{}) {
-	fields := req.(map[string]interface{})["fields"]
-	// Handle Everything Else
-	if fields != nil {
-		fmt.Print("Fields: ")
-		for _, rf := range fields.([]interface{}) {
-			field := tm(rf)
-			fieldType := tm(field["type"])["ofType"]
-			if fieldType != nil {
-				fieldTypeName := tm(fieldType)["name"]
-				fieldKind := tm(fieldType)["kind"]
-				isList := false
-				if fieldKind != nil {
-					// InternalType
-					// TODO Probably recursion IDK
-					ofType := tm(fieldType)["ofType"]
-					isList = tm(fieldType)["kind"] == "LIST"
-					if ofType != nil {
-						ofType = tm(ofType)["ofType"]
-						if ofType != nil {
-							fieldTypeName = tm(ofType)["name"]
-						}
-					}
-				}
-				typeName := fieldTypeName.(string)
-
-				if strings.Contains(typeName, "__") {
-					// Skip internal GraphQL shit
-					continue
-				}
-				fmt.Print(field["name"], ":")
-				if isList {
-					fmt.Print("[]")
-				}
-				typeMap[typeName] = tokens.GQLTypeToGolangType(typeName)
-				fmt.Print(fieldTypeName, "\n\t")
-			}
-		}
-		fmt.Println()
-	}
-}
-
-func tm(req interface{}) map[string]interface{} {
-	return req.(map[string]interface{})
-}
-
-func toStruct(mp map[string]interface{}, resp interface{}) error {
-	b, err := json.Marshal(mp)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, &resp)
-}
-
-type GQLType struct {
-	Kind       string        `json:"kind"`
-	Name       string        `json:"name"`
-	Decription string        `json:"description"`
-	Fields     []interface{} `json:"fields"`
+	fmt.Println("Types", string(b))
 }
