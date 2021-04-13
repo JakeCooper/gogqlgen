@@ -15,12 +15,13 @@ var tm = mapper.ToMap
 
 func main() {
 	url := flag.String("url", "", "URL of GraphQL API")
+	outDir := flag.String("dir", "./gen", "Outdir for generated files")
 	flag.Parse()
 	if url == nil || *url == "" {
 		panic(errors.New("URL must be provided!"))
 	}
 
-	g := generator.New("gen", "generated")
+	g := generator.New(*outDir, "generated")
 
 	schema, err := introspect.RawSchema(*url)
 	if err != nil {

@@ -25,7 +25,7 @@ var tm = mapper.ToMap
 
 func New(path string, filename string) *Generator {
 	os.Mkdir(path, os.FileMode(0755))
-	objectFile, err := os.Create(fmt.Sprintf("./%s/types.go", path))
+	objectFile, err := os.Create(fmt.Sprintf("%s/types.go", path))
 	if err != nil {
 		panic(err)
 	}
