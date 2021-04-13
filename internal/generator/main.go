@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 
@@ -50,6 +51,24 @@ func New(path string, filename string) *Generator {
 	for _, file := range files {
 		file.Write([]byte("// GENERATED FILE DO NOT EDIT!!!\n\npackage gen\n\n"))
 	}
+
+	clientIn, err := os.Open("./internal/client/client.go")
+	if err != nil {
+		panic(err)
+	}
+	scanner := bufio.NewScanner(clientIn)
+	scanner.Scan() // SKip line #1 (aka package client)
+	scanner.Scan() // Skip line #2 (aka random ass whitespace)
+
+	for scanner.Scan() {
+		_, err = clientFile.Write([]byte(scanner.Text() + "\n"))
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	clientFile.Write([]byte("\n"))
+
 	// Write package name + generated header
 	return &Generator{
 		Outs: &Outs{
