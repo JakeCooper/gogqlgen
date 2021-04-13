@@ -105,7 +105,7 @@ func (g *Generator) writeClient(name string, typeName string, isList bool, args 
 	} else {
 		typeValue = "*" + typeValue
 	}
-	g.Outs.ClientFile.Write([]byte(fmt.Sprintf("func (c *Client) %s (ctx context.Context, req *%sRequest) (%s, error) {\n", upperName, upperName, typeValue)))
+	g.Outs.ClientFile.Write([]byte(fmt.Sprintf("func (c *Client) %s(ctx context.Context, req *%sRequest) (%s, error) {\n", upperName, upperName, typeValue)))
 	if hasQueryable {
 		g.Outs.ClientFile.Write([]byte(fmt.Sprintf("\tgen, err := c.asGQL(ctx, req.GQL)\n")))
 		g.Outs.ClientFile.Write([]byte("\tif err != nil {\n\t\treturn nil, err\n\t}\n"))
