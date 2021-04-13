@@ -17,10 +17,6 @@ type ArgShit struct {
 func (g *Generator) HandleQuery(req interface{}) {
 	z := req.(map[string]interface{})
 	fields := z["fields"]
-	// name := z["name"]
-	// Handle Everything Else
-	// g.Outs.ClientFile.Write([]byte("import (\n \"context\"\n)\n\n"))
-	// g.Outs.ClientFile.Write([]byte("type Client struct {}\n\n"))
 	if fields != nil {
 		for _, rf := range fields.([]interface{}) {
 			field := tm(rf)
@@ -80,17 +76,8 @@ func (g *Generator) HandleQuery(req interface{}) {
 				}
 				g.Outs.QueryFile.Write([]byte("\tGQL "))
 
-				if isList {
-					// g.Outs.QueryFile.Write([]byte("[]"))
-				}
-				// g.Types[typeName] = typeName
-				// if !tokens.IsPrimitive(typeName) {
-				// 	g.Outs.QueryFile.Write([]byte("*"))
-				// }
 				g.Outs.QueryFile.Write([]byte(fmt.Sprintf("%sGQL\n", tokens.GQLTypeToGolangType(typeName))))
 				g.Outs.QueryFile.Write([]byte("}\n\n"))
-				// TODO Generate client (Probably need a response object else gonna fail to serialize shit back)
-				// Actually probs not true just do the machinebox gql meme with the resp as (bool, primitive, etc)
 				g.writeClient(fieldName, typeName, isList, processedArgs, !tokens.IsPrimitive(typeName))
 			}
 		}
